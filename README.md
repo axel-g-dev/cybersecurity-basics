@@ -47,6 +47,3 @@ Cybersecurity-basics/
 - **tryhackme.md** : Suivi de ma progression sur TryHackMe
 - **root-me.md** : Suivi de ma progression sur Root-Me
 
-## Contribution
-
-Ce dépôt est principalement destiné à mon apprentissage personnel, mais n'hésitez pas à suggérer des améliorations ou des corrections.
