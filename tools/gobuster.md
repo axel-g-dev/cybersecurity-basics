@@ -1,24 +1,40 @@
-Gobuster GitHub repository : https://github.com/OJ/gobuster
+# Gobuster
 
-specific wordlists and handling the incoming responses. Many security professionals use this tool for penetration testing, bug bounty hunting, and cyber security assessments. Looking at the phases of ethical hacking, we can place Gobuster between the reconnaissance and scanning phases.
+**Dépôt GitHub officiel** : [https://github.com/OJ/gobuster](https://github.com/OJ/gobuster)
 
-Before exploring Gobuster, let’s briefly discuss the concepts of enumeration and Brute Force.
+---
 
-Enumeration
+## Introduction
 
-Enumeration is the act of listing all the available resources, whether they are accessible or not. For example, Gobuster enumerates web directories.
+Gobuster est un outil d'énumération et de force brute conçu pour identifier les ressources cachées sur les serveurs web et les infrastructures réseau. Utilisé par de nombreux professionnels de la sécurité lors de tests d'intrusion, de programmes de bug bounty et d'évaluations de cybersécurité, Gobuster se positionne entre les phases de reconnaissance et de scan dans le cycle du hacking éthique.
 
-Brute Force
+L'outil fonctionne en utilisant des listes de mots spécifiques et en analysant les réponses reçues pour découvrir des répertoires, fichiers, sous-domaines et hôtes virtuels qui ne sont pas directement accessibles ou référencés.
 
-Brute force is the act of trying every possibility until a match is found. It is like having ten keys and trying them all on a lock until one fits. Gobuster uses wordlists for this purpose.
+---
 
-Gobuster: Overview
-Gobuster is included by default in distributions like Kali Linux. Let’s start by looking at Gobuster’s help page. This help page gives us a good overview of its functionalities and options.
+## Concepts fondamentaux
 
-Enter the following command: gobuster --help. You should get the help page for the Gobuster tool as shown below:
+### Énumération
 
-AttackBox Terminal
-root@tryhackme:~# gobuster --help
+L'énumération consiste à lister toutes les ressources disponibles, qu'elles soient accessibles ou non. Par exemple, Gobuster énumère les répertoires web d'un serveur pour identifier leur existence, indépendamment des permissions d'accès.
+
+### Force brute
+
+La force brute est une technique qui consiste à essayer toutes les possibilités jusqu'à trouver une correspondance. C'est comparable à tester dix clés différentes sur une serrure jusqu'à ce que l'une d'entre elles fonctionne. Gobuster utilise des listes de mots pour automatiser ce processus de manière efficace.
+
+---
+
+## Vue d'ensemble de Gobuster
+
+Gobuster est inclus par défaut dans les distributions de sécurité comme Kali Linux. Pour afficher la page d'aide et obtenir un aperçu des fonctionnalités disponibles, utilisez la commande suivante :
+
+```bash
+gobuster --help
+```
+
+### Résultat de la commande d'aide
+
+```
 Usage:
   gobuster [command]
 
@@ -50,124 +66,167 @@ Flags:
       --wordlist-offset int   Resume from a given position in the wordlist (defaults to 0)
 
 Use "gobuster [command] --help" for more information about a command.
-The help page contains multiple sections:
+```
 
-Usage: Shows the syntax on how to use the command.
-Available Commands: Multiple commands are available to aid us in enumerating directories, files, DNS subdomains, Google Cloud Storage buckets, and Amazon AWS S3 buckets. Throughout this room, we will focus on the dir, dns, and vhost commands. We will cover each of them in the following tasks.
-Flags: These are specific options we can configure to customize our commands. Let’s look at the flags we will often use throughout this room:
-Short Flag	Long Flag	Description
--t	--threads	This flag configures the number of threads to use for the scan. Each of these threads sends out requests with a slight delay. The default number of threads is 10. This number may be slow when using large wordlists. You can increase or decrease the number of threads depending on the available system resources.
--w	--wordlist	The flag configures a wordlist to use for iterating. Each wordlist entry is attached to the URL you included in the command.
---delay	This flag defines the amount of time to wait between sending requests. Some web servers include mechanisms to detect enumeration by looking at how many requests are received in a certain period of time. We can increase the delay between subsequent requests to make it look like normal web traffic.
---debug	This flag helps us to troubleshoot when our command gives unexpected errors.
--o	--output	This flag writes the enumeration results to a file we choose.
-Example
-Let us look at an example of how we would use these commands and flags together to enumerate a web directory:
+### Structure de la page d'aide
 
+**Usage** : Indique la syntaxe d'utilisation de la commande.
+
+**Available Commands** : Plusieurs commandes sont disponibles pour énumérer les répertoires, fichiers, sous-domaines DNS, buckets Google Cloud Storage et Amazon AWS S3. Ce guide se concentre principalement sur les modes `dir`, `dns` et `vhost`.
+
+**Flags** : Options de configuration permettant de personnaliser les commandes. Voici les drapeaux les plus fréquemment utilisés :
+
+| Drapeau court | Drapeau long | Description                                                                                                                                                                                                                              |
+| ------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-t`          | `--threads`  | Configure le nombre de threads à utiliser pour le scan. Chaque thread envoie des requêtes avec un léger délai. La valeur par défaut est 10. Ce nombre peut être augmenté pour améliorer les performances avec de grandes listes de mots. |
+| `-w`          | `--wordlist` | Spécifie la liste de mots à utiliser pour l'itération. Chaque entrée de la liste est ajoutée à l'URL incluse dans la commande.                                                                                                           |
+| `--delay`     |              | Définit le temps d'attente entre l'envoi de requêtes. Certains serveurs web détectent l'énumération en analysant le nombre de requêtes reçues dans un laps de temps donné. Augmenter le délai permet de simuler un trafic web normal.    |
+| `--debug`     |              | Active le mode débogage pour diagnostiquer les erreurs inattendues.                                                                                                                                                                      |
+| `-o`          | `--output`   | Écrit les résultats de l'énumération dans un fichier spécifié.                                                                                                                                                                           |
+
+### Exemple d'utilisation
+
+Voici un exemple de commande combinant plusieurs options pour énumérer un répertoire web :
+
+```bash
 gobuster dir -u "http://www.example.thm/" -w /usr/share/wordlists/dirb/small.txt -t 64
-gobuster dir indicates that we will use the directory and file enumeration mode.
--u "http://www.example.thm/" tells Gobuster that the target URL is http://example.thm/.
--w /usr/share/wordlists/dirb/small.txt directs Gobuster to use the small.txt wordlist to brute force the web directories. Gobuster will use each entry in the wordlist to form a new URL and send a GET request to that URL. If the first entry of the wordlist were images, Gobuster would send a GET request to http://example.thm/images/.
--t 64 sets the number of threads Gobuster will use to 64. This improves the performance drastically.
-Now that we have a quick overview of Gobuster, let’s explore the different modes and their use cases in the following tasks.
+```
 
-Gobuster has a dir mode, allowing users to enumerate website directories and their files. This mode is useful when you are performing a penetration test and would like to see what the directory structure of a website is and what files it contains. Often, directory structures of websites and web apps follow a particular convention, making them susceptible to Brute Force using wordlists. For example, the  directory structure on the web server hosting WordPress looks something  like this:
+**Décomposition de la commande** :
 
-AttackBox Terminal
-root@tryhackme:~# tree -L 3 -d
+- `gobuster dir` : Active le mode d'énumération de répertoires et fichiers.
+- `-u "http://www.example.thm/"` : Définit l'URL cible comme `http://example.thm/`.
+- `-w /usr/share/wordlists/dirb/small.txt` : Indique à Gobuster d'utiliser la liste de mots `small.txt` pour forcer les répertoires web. Gobuster utilise chaque entrée de la liste pour former une nouvelle URL et envoyer une requête GET. Si la première entrée est `images`, Gobuster enverra une requête GET à `http://example.thm/images/`.
+- `-t 64` : Définit le nombre de threads à 64, améliorant considérablement les performances.
+
+---
+
+## Mode DIR : Énumération de répertoires et fichiers
+
+Le mode `dir` permet d'énumérer les répertoires et fichiers d'un site web. Cette fonctionnalité est particulièrement utile lors de tests d'intrusion pour découvrir la structure des répertoires et identifier les fichiers présents sur le serveur.
+
+Les structures de répertoires des sites web et applications suivent souvent des conventions particulières, les rendant vulnérables à la force brute via des listes de mots. Par exemple, la structure de répertoires d'un serveur hébergeant WordPress ressemble à ceci :
+
+```
 .
 └── html
     └── wordpress
         ├── wp-admin
         ├── wp-content
         └── wp-includes
-Gobuster is powerful because it allows you to scan the website and return the status codes. These status codes immediately tell you if you, as an outside user, can request that directory or not.
+```
 
-Help
-If you want a complete overview of what the Gobuster dir command can offer, you can look at the help page. Seeing the extensive help page for the dir command can somewhat be intimidating. So, we will focus on the most essential flags in this room. Type the following command to display the help: gobuster dir --help.
+La puissance de Gobuster réside dans sa capacité à scanner le site web et retourner les codes de statut HTTP, indiquant immédiatement si un répertoire est accessible ou non.
 
-Many flags are used to fine-tune the gobuster dir command. It is out of scope to go over each one of them, but in the table below, we have listed the flags that cover most of the scenarios:
+### Aide du mode DIR
 
-Flag	Long Flag	Description
--c	--cookies	This flag configures a cookie to pass along each request, such as a session ID.
--x	--extensions	This flag specifies which file extensions you want to scan for. E.g., .php, .js
--H	--headers	This flag configures an entire header to pass along with each request.
--k	--no-tls-validation	This flag  skips the process that checks the certificate when https is used. It often happens for CTF events or test rooms like the ones on THM a self-signed certificate is used. This causes an error during the TLS check.
--n	--no-status	You can set this flag when you don’t want to see status codes of each response received. This helps keep the output on the screen clear.
--P	password	You can set this flag together with the --username flag to execute authenticated requests. This is handy when you have obtained credentials from a user.
--s	--status-codes	With this flag, you can configure which status codes of the received responses you want to display, such as 200, or a range like 300-400.
--b	--status-codes-blacklist	This flag allows you to configure which status codes of the received responses you don’t want to display. Configuring this flag overrides the -s flag.
--U	--username	You can set this flag together with the --password flag to execute authenticated requests. This is handy when you have obtained credentials from a user.
--r	--followredirect	This flags configures Gobuster to follow the redirect that it received as a response to the sent request. A HTTP redirect status code (e.g., 301 or 302) is used to redirect the client to a different URL.
-How To Use dir Mode
-To run Gobuster in dir mode, use the following command format:
+Pour obtenir un aperçu complet des options disponibles pour le mode `dir`, consultez la page d'aide :
 
+```bash
+gobuster dir --help
+```
+
+Le mode `dir` offre de nombreux drapeaux pour affiner les scans. Voici les plus essentiels :
+
+| Drapeau court | Drapeau long               | Description                                                                                                                                                      |
+| ------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-c`          | `--cookies`                | Configure un cookie à transmettre avec chaque requête, comme un ID de session.                                                                                   |
+| `-x`          | `--extensions`             | Spécifie les extensions de fichiers à rechercher (ex : `.php`, `.js`).                                                                                           |
+| `-H`          | `--headers`                | Configure un en-tête complet à transmettre avec chaque requête.                                                                                                  |
+| `-k`          | `--no-tls-validation`      | Ignore la vérification du certificat lors de l'utilisation de HTTPS. Utile pour les certificats auto-signés utilisés dans les CTF ou les environnements de test. |
+| `-n`          | `--no-status`              | Masque les codes de statut de chaque réponse reçue pour garder une sortie claire.                                                                                |
+| `-P`          | `--password`               | Utilisé avec `--username` pour exécuter des requêtes authentifiées.                                                                                              |
+| `-s`          | `--status-codes`           | Configure les codes de statut à afficher (ex : `200` ou une plage comme `300-400`).                                                                              |
+| `-b`          | `--status-codes-blacklist` | Configure les codes de statut à ne pas afficher. Ce drapeau remplace `-s`.                                                                                       |
+| `-U`          | `--username`               | Utilisé avec `--password` pour exécuter des requêtes authentifiées.                                                                                              |
+| `-r`          | `--followredirect`         | Configure Gobuster pour suivre les redirections HTTP (codes 301, 302, etc.).                                                                                     |
+
+### Utilisation du mode DIR
+
+Pour exécuter Gobuster en mode `dir`, utilisez le format de commande suivant :
+
+```bash
 gobuster dir -u "http://www.example.thm" -w /path/to/wordlist
+```
 
-Notice that the command also includes the flags -u and -w, in addition to the dir keyword. These two flags are required for the Gobuster directory enumeration to work. Let us look at a practical example of how to enumerate directories and files with Gobuster dir mode:
+Les drapeaux `-u` et `-w` sont obligatoires pour que l'énumération fonctionne correctement.
 
+#### Exemple pratique
+
+```bash
 gobuster dir -u "http://www.example.thm" -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -r
+```
 
-This command scans all the directories located at www.example.thm using the wordlist directory-list-2.3-medium.txt. Let’s look a bit closer at each part of the command:
+Cette commande scanne tous les répertoires situés à `www.example.thm` en utilisant la liste de mots `directory-list-2.3-medium.txt`.
 
-gobuster dir: Configures Gobuster to use the directory and file enumeration mode.
--u http://www.example.thm:
-The URL will be the base path where Gobuster starts looking. So, the URL  above is using the root web directory. For example, in a typical Apache installation on Linux, this is /var/www/html. So if you have a “resources” directory and you want to enumerate that directory, you’d set the URL as http://www.example.thm/resources. You can also think of this like http://www.example.thm/path/to/folder.
-The URL must contain the protocol used, in this case, HTTP. This is important and required. If you pass the wrong protocol, the scan will fail.
-In the host part of the URL, you can either fill in the IP or the HOSTNAME. However, it is important to mention that when using the IP, you may target a different website than intended. A web server can host multiple websites using one IP (this technique is also called virtual hosting). Use the HOSTNAME if you want to be sure.
-Gobuster does not enumerate recursively. So, if the results show a directory path you are interested in, you will have to enumerate that specific directory.
--w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt configures Gobuster to use the directory-list-2.3-medium.txt wordlist to enumerate. Each entry of the wordlist is appended to the configured URL.
--r configures Gobuster to follow the redirect responses received from the sent requests. If a status code 301 was received, Gobuster will navigate to the redirect URL that is included in the response.
-Let’s look at a second example where we use the -x flag to specify what type of files we want to enumerate:
+**Détails de la commande** :
 
+- `gobuster dir` : Active le mode d'énumération de répertoires et fichiers.
+- `-u http://www.example.thm` : L'URL sera le chemin de base où Gobuster commence la recherche. L'URL utilise ici le répertoire web racine. Dans une installation Apache typique sur Linux, cela correspond à `/var/www/html`. Pour énumérer un répertoire spécifique comme `resources`, l'URL serait `http://www.example.thm/resources`.
+  - L'URL doit contenir le protocole utilisé (HTTP ou HTTPS). C'est obligatoire, sinon le scan échouera.
+  - Dans la partie hôte de l'URL, vous pouvez utiliser soit l'adresse IP, soit le nom d'hôte. Cependant, l'utilisation de l'IP peut cibler un site web différent de celui prévu, car un serveur web peut héberger plusieurs sites sur une seule IP (hébergement virtuel). Utilisez le nom d'hôte pour être sûr.
+  - Gobuster n'énumère pas de manière récursive. Si les résultats montrent un répertoire intéressant, vous devrez énumérer ce répertoire spécifiquement.
+- `-w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt` : Configure Gobuster pour utiliser la liste de mots spécifiée. Chaque entrée est ajoutée à l'URL configurée.
+- `-r` : Configure Gobuster pour suivre les redirections reçues des requêtes envoyées.
+
+#### Exemple avec extensions de fichiers
+
+```bash
 gobuster dir -u "http://www.example.thm" -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x .php,.js
+```
 
-This command will look for directories located at http://example.thm using the wordlist directory-list-2.3-medium.txt. In addition to directory listing, this command also lists all the files that have a .php or .js extension.
+Cette commande recherche les répertoires situés à `http://example.thm` et liste également tous les fichiers ayant une extension `.php` ou `.js`.
 
-The next mode we’ll focus on is the dns mode. This mode allows Gobuster to brute force subdomains. During a penetration test,  checking the subdomains of your target’s top domain is essential. Just because something is patched in the regular domain, it doesn't mean it is also patched in the subdomain. An opportunity to exploit a vulnerability in one of these subdomains may exist. For example, if TryHackMe owns tryhackme.thm and mobile.tryhackme.thm, there may be a vulnerability in mobile.tryhackme.thm that is not present in tryhackme.thm. That is why it is important to search for subdomains as well!
+---
 
-Help
-If you want a complete overview of what the Gobuster dns command can offer, you can have a look at the help page. Seeing the extensive help page for the dns command can be intimidating. So, we will focus on the most important flags in this room. Type the following command to display the help: gobuster dns --help
+## Mode DNS : Énumération de sous-domaines
 
-The dns mode offers fewer flags than the dir mode. But these are more than enough to cover most DNS subdomain enumeration scenarios. Let us have a look at some of the commonly used flags:
+Le mode `dns` permet de forcer les sous-domaines par force brute. Lors d'un test d'intrusion, vérifier les sous-domaines du domaine principal de votre cible est essentiel. Un correctif appliqué sur le domaine principal n'est pas nécessairement appliqué sur les sous-domaines, créant ainsi des opportunités d'exploitation.
 
-Flag	Long Flag	Description
--c
+Par exemple, si TryHackMe possède `tryhackme.thm` et `mobile.tryhackme.thm`, une vulnérabilité peut exister sur `mobile.tryhackme.thm` qui n'est pas présente sur `tryhackme.thm`.
 
---show-cname
+### Aide du mode DNS
 
-Show CNAME Records (cannot be used with the -i flag).
+Pour obtenir un aperçu complet des options disponibles pour le mode `dns`, consultez la page d'aide :
 
--i
+```bash
+gobuster dns --help
+```
 
---show-ips
+Le mode `dns` offre moins de drapeaux que le mode `dir`, mais ils sont suffisants pour couvrir la plupart des scénarios d'énumération de sous-domaines DNS :
 
-Including this flag shows IP addresses that the domain and subdomains resolve to.
--r
+| Drapeau court | Drapeau long   | Description                                                                        |
+| ------------- | -------------- | ---------------------------------------------------------------------------------- |
+| `-c`          | `--show-cname` | Affiche les enregistrements CNAME (ne peut pas être utilisé avec `-i`).            |
+| `-i`          | `--show-ips`   | Affiche les adresses IP vers lesquelles le domaine et les sous-domaines résolvent. |
+| `-r`          | `--resolver`   | Configure un serveur DNS personnalisé pour la résolution.                          |
+| `-d`          | `--domain`     | Configure le domaine que vous souhaitez énumérer.                                  |
 
---resolver
+### Utilisation du mode DNS
 
-This flag configures a custom DNS server to use for resolving.
--d
+Pour exécuter Gobuster en mode `dns`, utilisez la syntaxe suivante :
 
---domain
-
-This flag configures the domain you want to enumerate.
-How to Use dns Mode
-To run Gobuster in dns mode, use the following command syntax:
+```bash
 gobuster dns -d example.thm -w /path/to/wordlist
+```
 
-Notice that the command also includes the flags -d and -w, in addition to the dns keyword. These two flags are required for the Gobuster subdomain enumeration to work. Let us look at an example of how to enumerate  subdomains with Gobuster dns mode:
+Les drapeaux `-d` et `-w` sont obligatoires pour que l'énumération de sous-domaines fonctionne.
 
+#### Exemple pratique
+
+```bash
 gobuster dns -d example.thm -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt
+```
 
-gobuster dns enumerates subdomains on the configured domain.
--d example.thm sets the target to the example.thm domain.
--w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt sets the wordlist to subdomains-top1million-5000.txt. Gobuster uses each entry of this list to construct a new DNS query. If the first entry of this list is 'all', the query would be all.example.thm.
-Go ahead and enter the command for yourself. You should get the following output:
+**Détails de la commande** :
 
-AttackBox Terminal
-root@tryhackme:~# gobuster dns -d example.thm -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt 
+- `gobuster dns` : Énumère les sous-domaines sur le domaine configuré.
+- `-d example.thm` : Définit la cible comme le domaine `example.thm`.
+- `-w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt` : Définit la liste de mots à utiliser. Gobuster utilise chaque entrée pour construire une nouvelle requête DNS. Si la première entrée est `all`, la requête sera `all.example.thm`.
+
+#### Résultat attendu
+
+```
 ===============================================================
 Gobuster v3.6
 by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
@@ -180,67 +239,67 @@ by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
 Starting gobuster in DNS enumeration mode
 ===============================================================
 Found: www.example.thm
-                                                                                                                                                            
 Found: shop.example.thm
-                                                                                                                                                            
 Found: academy.example.thm
-                                                                                                                                                            
 Found: primary.example.thm
-                                                                                                                                                            
 Progress: 4989 / 4990 (99.98%)
 ===============================================================
 Finished
-=============================================================== 
+===============================================================
+```
 
-The last and final mode we’ll focus on is the vhost mode. This mode allows Gobuster to brute force virtual hosts. Virtual hosts are different websites on the same machine. Sometimes, they look like subdomains, but don’t be deceived! Virtual hosts are IP-based and are running on the same server. Subdomains are set up in DNS. The  difference between vhost and dns mode is in the way Gobuster scans:
+---
 
-vhost mode will navigate to the URL created by combining the configured HOSTNAME (-u flag) with an entry of a wordlist.
-dns mode will do a DNS lookup to the FQDN created by combining the configured domain name (-d flag) with an entry of a wordlist.
-Help
-If you want a complete overview of what the Gobuster vhost command can offer, you can have a look at the help page. Seeing the extensive help page for the vhost command can be intimidating. So, we will focus on the most important flags in this room. Type the  following command to display the help: gobuster vhost --help
+## Mode VHOST : Énumération d'hôtes virtuels
 
-The vhost mode offers flags similar to those of the dir mode. Let us have a look at some of the commonly used flags:
+Le mode `vhost` permet de forcer les hôtes virtuels par force brute. Les hôtes virtuels sont des sites web différents hébergés sur la même machine. Bien qu'ils puissent ressembler à des sous-domaines, ils sont basés sur l'IP et s'exécutent sur le même serveur, contrairement aux sous-domaines qui sont configurés dans le DNS.
 
-Short Flag	Long Flag	Description
--u
+### Différence entre VHOST et DNS
 
---url
+- **Mode vhost** : Navigue vers l'URL créée en combinant le nom d'hôte configuré (drapeau `-u`) avec une entrée de la liste de mots.
+- **Mode dns** : Effectue une recherche DNS vers le FQDN créé en combinant le nom de domaine configuré (drapeau `-d`) avec une entrée de la liste de mots.
 
-Specifies the base URL (target domain) for brute-forcing virtual hostnames.
+### Aide du mode VHOST
 
---append-domain
+Pour obtenir un aperçu complet des options disponibles pour le mode `vhost`, consultez la page d'aide :
 
-Appends the base domain to each word in the wordlist (e.g., word.example.com).
--m
+```bash
+gobuster vhost --help
+```
 
---method
+Le mode `vhost` offre des drapeaux similaires à ceux du mode `dir` :
 
-Specifies the HTTP method to use for the requests (e.g., GET, POST).
+| Drapeau court | Drapeau long        | Description                                                                                                    |
+| ------------- | ------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `-u`          | `--url`             | Spécifie l'URL de base (domaine cible) pour forcer les noms d'hôtes virtuels.                                  |
+|               | `--append-domain`   | Ajoute le domaine de base à chaque mot de la liste (ex : `word.example.com`).                                  |
+| `-m`          | `--method`          | Spécifie la méthode HTTP à utiliser pour les requêtes (ex : GET, POST).                                        |
+|               | `--domain`          | Ajoute un domaine à chaque entrée de la liste pour former un nom d'hôte valide.                                |
+|               | `--exclude-length`  | Exclut les résultats en fonction de la longueur du corps de la réponse (utile pour filtrer les faux positifs). |
+| `-r`          | `--follow-redirect` | Suit les redirections HTTP.                                                                                    |
 
---domain
+### Utilisation du mode VHOST
 
-Appends a domain to each wordlist entry to form a valid hostname (useful if not provided explicitly).
+Pour exécuter Gobuster en mode `vhost`, utilisez la commande suivante :
 
---exclude-length
-
-Excludes results based on the length of the response body (useful to filter out unwanted responses).
--r
-
---follow-redirect
-
-Follows HTTP redirects (useful for cases where subdomains may redirect).
-How To Use vhost Mode
-To run Gobuster in vhost mode, type the following command:
-
+```bash
 gobuster vhost -u "http://example.thm" -w /path/to/wordlist
+```
 
-Notice that the command also includes the flags -u and -w, in addition to the vhost keyword. These two flags are required for the Gobuster vhost enumeration to work. Let us look at a practical example of how to enumerate virtual hosts with Gobuster vhost mode:
+Les drapeaux `-u` et `-w` sont obligatoires pour que l'énumération d'hôtes virtuels fonctionne.
 
-AttackBox Terminal
-root@tryhackme:~# gobuster vhost -u "http://10.66.131.245" --domain example.thm -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt --append-domain --exclude-length 250-320 
+#### Exemple pratique
+
+```bash
+gobuster vhost -u "http://10.66.131.245" --domain example.thm -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt --append-domain --exclude-length 250-320
+```
+
+#### Résultat attendu
+
+```
 ===============================================================
 Gobuster v3.6
-by OJ Reeves (@TheColonial) &amp; Christian Mehlmauer (@firefart)
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
 ===============================================================
 [+] Url:              http://10.10.94.214
 [+] Method:           GET
@@ -262,9 +321,15 @@ Progress: 4989 / 4990 (99.98%)
 ===============================================================
 Finished
 ===============================================================
+```
 
-You will notice that this command is much more complex than the base command syntax. It contains many more configured flags. This will often be the case in realistic tests, depending on how the infrastructure of the domain to test has been set up. In our case, we don't have a fully set up DNS infrastructure. This requires us to give in extra flags like --domain and --append-domain. We need to look at the web requests Gobuster sends to understand better how these flags work. Below, you can see a basic GET request to www.example.thm:
+### Analyse des requêtes HTTP
 
+Cette commande est plus complexe que la syntaxe de base car elle contient de nombreux drapeaux configurés. Cela reflète souvent les tests réalistes, selon la configuration de l'infrastructure du domaine testé.
+
+Voici un exemple de requête GET basique vers `www.example.thm` :
+
+```http
 GET / HTTP/1.1
 Host: www.example.thm
 User-Agent: gobuster/3.6
@@ -272,16 +337,25 @@ Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/w
 Accept-Language: en-US,en;q=0.5
 Accept-Encoding: gzip, deflate
 Connection: keep-alive
-Gobuster will send multiple requests, each time changing the Host: part of the request. The value of Host: in this example is www.example.thm. We can break this down into three parts:
+```
 
-www: This is the subdomain. This is the part that Gobuster will fill in with each entry of the configured wordlist.
-.example: This is the second-level domain. You can configure this with the --domain flag (this needs to be configured together with the top-level domain).
-.thm: This is the top-level domain. You can configure this with the --domain flag (this needs to be configured together with the second-level domain).
-Now that we know how Gobuster sends its request, let's break down the command and examine each flag more closely:
+Gobuster envoie plusieurs requêtes en modifiant à chaque fois la partie `Host:` de la requête. La valeur de `Host:` dans cet exemple est `www.example.thm`, qui se décompose en trois parties :
 
-gobuster vhost instructs Gobuster to enumerate virtual hosts.
--u "http://10.66.131.245" sets the URL to browse to 10.66.131.245.
--w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt configures Gobuster to use the subdomains-top1million-5000.txt wordlist. Gobuster appends each entry in the wordlist to the configured domain. If no domain is explicitly configured with the --domain flag, Gobuster will extract it from the URL. E.g., test.example.thm, help.example.thm, etc. If any subdomains are found, Gobuster will report them to you in the terminal.
---domain example.thm sets the top- and second-level domains in the Hostname: part of the request to example.thm.
---append-domain appends the configured domain to each entry in the wordlist. If this flag is not configured, the set hostname would be www, blog, etc. This will cause the command to work incorrectly and display false positives.
---exclude-length filters the responses we get from the sent web requests. With this flag, we can filter out the false positives. If you run the command without this flag, you will notice you will get a lot of false positives like "Found: Orion.example.thm Status: 404 [Size: 279]" or  "Found: pm.example.thm Status: 404 [Size: 276]". These false positives typically have a similar response size, so we can use this to filter out most false positives. We expect to get a 200 OK response back to have a true positive. There are, however, exceptions, but it is not in the scope of this room to go deeper into these.
+1. **www** : Le sous-domaine. C'est la partie que Gobuster remplit avec chaque entrée de la liste de mots configurée.
+2. **.example** : Le domaine de second niveau. Configurable avec le drapeau `--domain`.
+3. **.thm** : Le domaine de premier niveau. Configurable avec le drapeau `--domain`.
+
+### Détails de la commande
+
+- `gobuster vhost` : Indique à Gobuster d'énumérer les hôtes virtuels.
+- `-u "http://10.66.131.245"` : Définit l'URL à parcourir comme `10.66.131.245`.
+- `-w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt` : Configure Gobuster pour utiliser la liste de mots spécifiée. Gobuster ajoute chaque entrée au domaine configuré.
+- `--domain example.thm` : Définit les domaines de premier et second niveau dans la partie `Hostname:` de la requête comme `example.thm`.
+- `--append-domain` : Ajoute le domaine configuré à chaque entrée de la liste de mots. Sans ce drapeau, le nom d'hôte serait simplement `www`, `blog`, etc., ce qui causerait des dysfonctionnements et afficherait des faux positifs.
+- `--exclude-length` : Filtre les réponses reçues des requêtes web. Ce drapeau permet de filtrer les faux positifs. Sans ce drapeau, vous obtiendrez de nombreux faux positifs comme `Found: Orion.example.thm Status: 404 [Size: 279]` ou `Found: pm.example.thm Status: 404 [Size: 276]`. Ces faux positifs ont généralement une taille de réponse similaire, permettant de les filtrer efficacement. Un vrai positif devrait retourner une réponse `200 OK`.
+
+---
+
+## Conclusion
+
+Gobuster est un outil puissant et polyvalent pour l'énumération de ressources web et réseau. Ses différents modes (`dir`, `dns`, `vhost`) permettent de couvrir un large éventail de scénarios de tests d'intrusion. La maîtrise de ses options et drapeaux est essentielle pour effectuer des scans efficaces et précis tout en minimisant les faux positifs.
