@@ -1,9 +1,5 @@
 # Cybersecurity Basics
 
-Bienvenue sur mon dépôt de cybersécurité où je documente tout ce que j'apprends dans le domaine de la sécurité informatique.
-
-## À propos
-
 Je suis actuellement en train d'apprendre les bases de la cybersécurité via [TryHackMe](https://tryhackme.com) et d'autres plateformes d'apprentissage.
 
 ## Structure du projet
